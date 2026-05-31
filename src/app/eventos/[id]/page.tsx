@@ -29,6 +29,7 @@ export default function EventoDetalle() {
   const [cantidades, setCantidades] = React.useState(() => (tickets ? tickets.map(() => 0) : []))
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
   const [showLoginPopup, setShowLoginPopup] = useState(false)
+  const [showMaxTicketsPopup, setShowMaxTicketsPopup] = useState(false)
   // Cargar el evento y los tickets
   useEffect(() => {
     async function loadData() {
@@ -111,6 +112,18 @@ export default function EventoDetalle() {
   }
 
   const incrementar = (index: number) => {
+    const totalActual = cantidades.reduce((acc, val) => acc + val, 0)
+
+    if (totalActual >= 10) {
+      setShowMaxTicketsPopup(true)
+
+      setTimeout(() => {
+        setShowMaxTicketsPopup(false)
+      }, 3000)
+
+      return
+    }
+
     const newCantidades = [...cantidades]
     if (newCantidades[index] < tickets[index].stockDisponible) {
       newCantidades[index] += 1
@@ -329,6 +342,26 @@ export default function EventoDetalle() {
           </div>
         </div>
       </div>
+
+      {/* Popup máximo de entradas */}
+      {showMaxTicketsPopup && (
+        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl transform animate-in fade-in duration-300">
+            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-md">
+              <Ticket className="w-10 h-10 text-yellow-600" />
+            </div>
+
+            <h3 className="text-2xl font-semibold text-gray-800 mb-3">
+              Límite alcanzado
+            </h3>
+
+            <p className="text-gray-500">
+              Solo puedes comprar un máximo de 10 entradas por persona.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Popup de éxito */}
       {showSuccessPopup && (
         <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
