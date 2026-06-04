@@ -87,16 +87,15 @@ export async function cambiarPassword(data: CambioPasswordData): Promise<void> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      currentPassword: data.currentPassword  || "", 
+      currentPassword: data.currentPassword || "",
       newPassword: data.newPassword,
       requireCurrent: data.requireCurrent ?? true, // ✅ si no se manda, asume true por defecto
     }),
   })
 
   if (!response.ok) {
-    const errorText = await response.text()
-    console.error("Error:", errorText)
-    throw new Error("No se pudo cambiar la contraseña")
+    const errorData = await response.json()
+    throw new Error(errorData.message || "No se pudo cambiar la contraseña")
   }
 }
 
@@ -143,7 +142,7 @@ export async function enviarEnlaceReset(email: string): Promise<void> {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email , cliente: "ecommerce"}),
+    body: JSON.stringify({ email, cliente: "ecommerce" }),
   });
 
   if (!res.ok) {

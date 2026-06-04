@@ -67,6 +67,13 @@ export default function ProfilePage() {
     eliminarNotificacion,
   } = useNotifications()
 
+  // Estado para errores por campo
+  const [passwordErrors, setPasswordErrors] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  })
+
   useEffect(() => {
     async function checkSesion() {
       const res = await validarSesion()
@@ -114,6 +121,7 @@ export default function ProfilePage() {
 
   function handlePasswordChange(field: string, value: string) {
     setPasswordData((prev) => ({ ...prev, [field]: value }))
+    setPasswordErrors((prev) => ({ ...prev, [field]: "" }))
   }
 
   function handleCancelPasswordChange() {
@@ -128,36 +136,36 @@ export default function ProfilePage() {
     setShowConfirmPassword(false)
   }
 
+  // ✅ Solo valida y abre el dialog - NO llama al API
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault()
 
+    const errors = { currentPassword: "", newPassword: "", confirmPassword: "" }
+    let hasError = false
+
+    if (passwordData.newPassword.length < 8) {
+      errors.newPassword = "La contraseña debe tener al menos 8 caracteres"
+      hasError = true
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      return toast.error("Las contraseñas no coinciden")
+      errors.confirmPassword = "Las contraseñas no coinciden"
+      hasError = true
     }
 
     if (!usuario?.userId) {
       return toast.error("No se pudo obtener el usuario")
     }
 
-    try {
-      await cambiarPassword({
-        userId: usuario.userId,
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-      })
-      toast.success("Contraseña actualizada correctamente")
-      setShowConfirmDialog(true)
-      handleCancelPasswordChange()
-    } catch (error) {
-      toast.error("Error al cambiar la contraseña")
-    }
-  }
+    setPasswordErrors(errors)  // ✅ siempre se ejecuta
+    if (hasError) return        // ✅ corta DESPUÉS de setear errores
 
+    setShowConfirmDialog(true)
+  }
+  // ✅ Esta es la que llama al API
   async function confirmarCambioDePassword() {
     setShowConfirmDialog(false)
-    if (!usuario?.userId) {
-      return toast.error("No se pudo obtener el usuario")
-    }
+    if (!usuario?.userId) return toast.error("No se pudo obtener el usuario")
 
     try {
       await cambiarPassword({
@@ -168,7 +176,13 @@ export default function ProfilePage() {
       setShowSuccessDialogPassword(true)
       handleCancelPasswordChange()
     } catch (error) {
-      toast.error("Error al cambiar la contraseña")
+      const mensaje = error instanceof Error ? error.message : "Error al cambiar la contraseña"
+      // Si el error es de contraseña actual, mostrarlo bajo ese campo
+      if (mensaje.toLowerCase().includes("actual")) {
+        setPasswordErrors((prev) => ({ ...prev, currentPassword: mensaje }))
+      } else {
+        toast.error(mensaje)
+      }
     }
   }
 
@@ -561,6 +575,9 @@ export default function ProfilePage() {
                                 placeholder="Ingresa tu contraseña actual"
                                 required
                               />
+                              {passwordErrors.currentPassword && (
+                                <p className="text-xs text-red-500 mt-1">{passwordErrors.currentPassword}</p>
+                              )}
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -584,6 +601,9 @@ export default function ProfilePage() {
                                 required
                                 minLength={8}
                               />
+                              {passwordErrors.newPassword && (
+                                <p className="text-xs text-red-500 mt-1">{passwordErrors.newPassword}</p>
+                              )}
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -601,12 +621,15 @@ export default function ProfilePage() {
                             <div className="relative">
                               <Input
                                 id="confirm-password"
-                                //type={showConfirmPassword ? "text" : "password"}
+                                type={showConfirmPassword ? "text" : "password"}
                                 value={passwordData.confirmPassword}
                                 onChange={(e) => handlePasswordChange("confirmPassword", e.target.value)}
                                 placeholder="Confirma tu nueva contraseña"
                                 required
                               />
+                              {passwordErrors.confirmPassword && (
+                                <p className="text-xs text-red-500 mt-1">{passwordErrors.confirmPassword}</p>
+                              )}
                               <Button
                                 type="button"
                                 variant="ghost"
